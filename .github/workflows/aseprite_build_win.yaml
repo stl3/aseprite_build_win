@@ -45,22 +45,6 @@ jobs:
           rm Skia-Windows-Release-x64.zip
           echo "SKIA_DIR=$(pwd)" >> $GITHUB_ENV
       
-      - name: Download Freetype and Harfbuzz
-        shell: bash
-        run: |
-          mkdir -p deps
-          cd deps
-          curl -L "https://download.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.gz" -o freetype.tar.gz
-          7z x freetype.tar.gz -oFreetype
-          cd Freetype #change working directory.
-          7z x freetype-2.13.2.tar.gz -oFreetype
-          cd .. #change working directory back.
-          rm freetype.tar.gz Freetype/freetype-2.13.2.tar.gz
-          curl -L "https://github.com/harfbuzz/harfbuzz/releases/download/8.3.0/harfbuzz-8.3.0-win64.zip" -o harfbuzz.zip
-          unzip harfbuzz.zip
-          rm harfbuzz.zip
-          echo "FREETYPE_DIR=$(pwd)/Freetype/freetype-2.13.2" >> $GITHUB_ENV
-          echo "HARFBUZZ_DIR=$(pwd)/harfbuzz-8.3.0-win64" >> $GITHUB_ENV
 
       - name: Configure CMake
         shell: cmd
