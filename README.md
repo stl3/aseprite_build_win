@@ -1,2 +1,3 @@
 # aseprite_build_win
-Action to build aseprite for win put bin in draft
+Action workflow to build aseprite for win put assets in draft
+Can choose latest stable or latest beta
