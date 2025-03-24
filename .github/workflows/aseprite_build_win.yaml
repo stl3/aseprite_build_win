@@ -14,17 +14,15 @@ jobs:
     env:
       RELEASE_TYPE: ${{ github.event.inputs.release-type }}
     steps:
-      # 1. Check out your source code or the Aseprite repo
+      # 1. Check out your code
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          # IMPORTANT: fetch the entire history so you can checkout other branches/tags
           fetch-depth: 0
-          # Submodules will be synced after we fetch the correct branch/tag
-          submodules: false
+          submodules: false  # We'll update submodules manually
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2. Determine the branch or tag to fetch (beta vs stable)
+      # 2. Determine branch or tag
       - name: Determine branch or tag
         id: set_release
         shell: bash
@@ -33,7 +31,6 @@ jobs:
             echo "release_ref=beta" >> $GITHUB_OUTPUT
           else
             echo "release_ref=main" >> $GITHUB_OUTPUT
-            # or 'master' or another stable branch name
           fi
 
       - name: Fetch and checkout
@@ -42,19 +39,18 @@ jobs:
           git fetch origin ${{ steps.set_release.outputs.release_ref }}
           git checkout ${{ steps.set_release.outputs.release_ref }}
 
-      # 3. Make sure submodules are updated after checking out the desired ref
+      # 3. Update submodules
       - name: Update submodules
         shell: bash
         run: |
           git submodule update --init --recursive
 
-      # 4. Setup MSYS2 environment on Windows
+      # 4. Setup MSYS2 environment
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
-          # Install all the packages needed to build Aseprite + zip
           install: >
             base-devel
             mingw-w64-x86_64-toolchain
@@ -67,24 +63,46 @@ jobs:
             mingw-w64-x86_64-boost
             zip
 
-      # 5. Build Aseprite using CMake + Ninja
+      # 5. Auto-detect path containing CMakeLists.txt
+      - name: Detect CMakeLists directory
+        id: detect_cmakelists
+        shell: bash
+        run: |
+          # We'll search for the first directory that contains a file named CMakeLists.txt
+          # 'find' will print all matching paths, so we take the first match.
+          # If your project has multiple CMakeLists, you may need to refine the logic.
+          DETECTED_PATH=$(find . -name CMakeLists.txt | head -n 1)
+
+          if [ -z "$DETECTED_PATH" ]; then
+            echo "ERROR: No CMakeLists.txt found in the repository!"
+            exit 1
+          fi
+
+          # The file might be something like ./aseprite/CMakeLists.txt
+          # So we want the directory part only:
+          DETECTED_DIR=$(dirname "$DETECTED_PATH")
+
+          # Output that directory path for future steps
+          echo "cmake_source_dir=$DETECTED_DIR" >> $GITHUB_OUTPUT
+
+      # 6. Build Aseprite using the detected directory
       - name: Configure & Build
         shell: msys2 {0}
         run: |
           mkdir build
           cd build
-          # Let CMake detect the MinGW compilers, specify Ninja as the generator
-          cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+          # Use the detected directory in place of '..'
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ${{ steps.detect_cmakelists.outputs.cmake_source_dir }}
           ninja aseprite
 
-      # 6. Archive the compiled Aseprite binary
+      # 7. Archive the compiled Aseprite binary
       - name: Archive Aseprite
         shell: msys2 {0}
         run: |
           cd build
           zip -r aseprite-windows.zip aseprite.exe
 
-      # 7. Create a draft release
+      # 8. Create draft release
       - name: Create draft release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -95,7 +113,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 8. Upload release asset
+      # 9. Upload release asset
       - name: Upload release asset
         uses: softprops/action-gh-release@v1
         with:
