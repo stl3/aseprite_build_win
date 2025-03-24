@@ -1,15 +1,21 @@
-name: Build Aseprite for Windows
+name: Build Aseprite for Windows (MSYS2 + Ninja)
 
 on:
-  workflow_dispatch:  # Runs manually
+  workflow_dispatch:
+    inputs:
+      release-type:
+        description: 'Choose release type: stable or beta'
+        required: true
+        default: stable
 
 jobs:
   build:
     runs-on: windows-latest
-
+    env:
+      RELEASE_TYPE: ${{ github.event.inputs.release-type }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - name: Checkout Action Repo
+        uses: actions/checkout@v3
 
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
@@ -17,7 +23,6 @@ jobs:
           msystem: MINGW64
           update: true
           install: >
-            git
             base-devel
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-cmake
@@ -30,12 +35,17 @@ jobs:
             mingw-w64-x86_64-curl
             zip
 
-      - name: Clone Aseprite Source
+      - name: Clone Aseprite
         shell: bash
         run: |
           git clone --recursive https://github.com/aseprite/aseprite.git aseprite
           cd aseprite
-          git submodule update --init --recursive --remote
+          if [ "${{ env.RELEASE_TYPE }}" = "beta" ]; then
+            git checkout beta
+          else
+            git checkout main
+          fi
+
 
       - name: Download Skia
         shell: bash
@@ -51,29 +61,52 @@ jobs:
           rm Skia-Windows-Release-x64.zip
           echo "SKIA_DIR=$(pwd)" >> $GITHUB_ENV
 
-      - name: Build Aseprite
+
+
+      - name: Check environment
+        shell: msys2 {0}
+        run: |
+          which cmake || echo "cmake not found"
+          which ninja || echo "ninja not found"
+          which gcc || echo "gcc not found"
+          which g++ || echo "g++ not found"
+
+      - name: Configure CMake
         shell: bash
         run: |
-          mkdir -p build
-          cd build
           cmake -G Ninja .. \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-            -DSKIA_DIR="$SKIA_DIR" \
             -DUSE_WINSOCK=1 \
             -D_WIN32_WINNT=0x0601  # Windows 7 or later
+          
+
+      - name: Configure & Build
+        shell: msys2 {0}
+        run: |
+          mkdir build
+          cd build
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSKIA_DIR=${{ env.SKIA_DIR }} ../aseprite
           ninja aseprite
 
-      - name: Package Aseprite
-        shell: bash
+      - name: Archive Aseprite
+        shell: msys2 {0}
         run: |
-          cd build/bin
+          cd build
           zip -r aseprite-windows.zip aseprite.exe
 
-      - name: Upload to GitHub Releases (Draft)
-        uses: softprops/action-gh-release@v2
+      - name: Create draft release
+        id: create_release
+        uses: softprops/action-gh-release@v1
         with:
-          files: build/bin/aseprite-windows.zip
+          tag_name: v$(date +'%Y%m%d%H%M')
+          name: "Aseprite ${{ env.RELEASE_TYPE }} release"
           draft: true
-          tag_name: "aseprite-$(date +%Y%m%d)"
-          name: "Aseprite Build $(date +%Y-%m-%d)"
-          body: "This is an automated build of Aseprite for Windows."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/aseprite-windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
