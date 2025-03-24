@@ -1,101 +1,57 @@
-name: Build Aseprite for Windows (Visual Studio + Ninja)
+name: Build Aseprite (Windows x64)
 
 on:
-  workflow_dispatch:
-    inputs:
-      release-type:
-        description: 'Choose release type: stable or beta'
-        required: true
-        default: stable
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: write
 
 jobs:
-  build:
-    runs-on: windows-latest
-    env:
-      RELEASE_TYPE: ${{ github.event.inputs.release-type }}
+  build_aseprite:
+    runs-on: windows-2022
+
     steps:
-      - name: Checkout Action Repo
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Setup Visual Studio Build Tools
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Clone Aseprite
-        shell: bash
+      - name: Install Dependencies
         run: |
-          git clone --recursive https://github.com/aseprite/aseprite.git aseprite
-          cd aseprite
-          if [ "${{ env.RELEASE_TYPE }}" = "beta" ]; then
-            git checkout beta
-          else
-            git checkout main
-          fi
+          choco install ninja -y
+          python -m pip install --upgrade pip
+          pip install requests
 
-      - name: Download Skia
-        shell: bash
-        run: |
-          mkdir -p skia
-          cd skia
-          RELEASE_URL=$(curl -sL -o /dev/null -w "%{url_effective}" https://github.com/aseprite/skia/releases/latest)
-          SKIA_VERSION=$(basename $RELEASE_URL)
-          SKIA_URL="https://github.com/aseprite/skia/releases/download/$SKIA_VERSION/Skia-Windows-Release-x64.zip"
-          echo "Downloading Skia from: $SKIA_URL"
-          curl -L "$SKIA_URL" -o Skia-Windows-Release-x64.zip
-          unzip Skia-Windows-Release-x64.zip
-          rm Skia-Windows-Release-x64.zip
-          echo "SKIA_DIR=$(pwd)" >> $GITHUB_ENV
-      
+      - name: Download Aseprite and Skia
+        run: python download.py
 
+      - name: Setup MSVC Environment
+        uses: TheMrMilchmann/setup-msvc-dev@v3
+        with:
+          arch: x64
 
-      - name: Configure CMake
-        shell: cmd
+      - name: Configure and Build
         run: |
-          cd aseprite
-          mkdir build_configure
-          cd build_configure
-          cmake -G Ninja ^
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo ^
-            -DUSE_WINSOCK=1 ^
-            -D_WIN32_WINNT=0x0A00 ^
-            ../
-            
-      - name: Configure & Build
-        shell: cmd
-        run: |
-          cd aseprite
           mkdir build
           cd build
-          dir %SKIA_DIR%/out/Release-x64/ # add this line to list directory contents.
-          cmake "../" -G Ninja ^
-            -DCMAKE_BUILD_TYPE=MinSizeRel ^
-            -DLAF_BACKEND=skia ^
-            -DSKIA_DIR=%SKIA_DIR% ^
-            -DSKIA_LIBRARY_DIR=%SKIA_DIR%/out/Release-x64 ^
-            -DSKIA_LIBRARY=%SKIA_DIR%/out/Release-x64/skia.lib ^
-            -DUSE_WINSOCK=1 ^
-            -D_WIN32_WINNT=0x0A00
+          cmake "../src/aseprite" -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel -DLAF_BACKEND=skia -DSKIA_DIR="../src/skia" -DSKIA_LIBRARY_DIR="../src/skia/out/Release-x64" -DSKIA_LIBRARY="../src/skia/out/Release-x64/skia.lib"
           ninja aseprite
           copy "C:/Windows/System32/libcrypto-1_1-x64.dll" ./bin
 
-      - name: Archive Aseprite
-        shell: cmd
+      - name: Get Aseprite Version
+        id: get_version
         run: |
-          cd aseprite\build
-          zip -r aseprite-windows.zip aseprite.exe
+          $version = Get-Content version.txt
+          echo "version=$version" >> $env:GITHUB_OUTPUT
 
-      - name: Create draft release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v$(date +'%Y%m%d%H%M')
-          name: "Aseprite ${{ env.RELEASE_TYPE }} release"
-          draft: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Zip Aseprite Build
+        run: |
+          cd build/bin
+          7z a ../../Aseprite-Windows-x64-${{ steps.get_version.outputs.version }}.zip *
 
-      - name: Upload release asset
-        uses: softprops/action-gh-release@v1
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          files: aseprite/build/aseprite-windows.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: Aseprite-Windows-x64-${{ steps.get_version.outputs.version }}
+          tag_name: ${{ steps.get_version.outputs.version }}
+          files: |
+            Aseprite-Windows-x64-${{ steps.get_version.outputs.version }}.zip
