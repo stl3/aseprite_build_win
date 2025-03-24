@@ -1,4 +1,4 @@
-name: Build Aseprite for Windows
+name: Build Aseprite for Windows (MSYS2 + Ninja)
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
       release-type:
         description: 'Choose release type: stable or beta'
         required: true
-        default: beta
+        default: stable
 
 jobs:
   build:
@@ -14,38 +14,40 @@ jobs:
     env:
       RELEASE_TYPE: ${{ github.event.inputs.release-type }}
     steps:
-      # 1. Check out the Aseprite repository.
-      - name: Checkout Aseprite source
+      # 1. Check out your source code or the Aseprite repo
+      - name: Checkout
         uses: actions/checkout@v3
         with:
-          repository: 'aseprite/aseprite'
+          # If building Aseprite from the official repo, specify:
+          # repository: 'aseprite/aseprite'
+          # Otherwise, omit or adjust as needed.
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2. Determine the branch or tag based on release type.
-      - name: Set branch or tag for release
+      # 2. Determine the branch or tag to fetch (beta vs stable)
+      - name: Determine branch or tag
         id: set_release
         shell: bash
         run: |
           if [ "${{ env.RELEASE_TYPE }}" = "beta" ]; then
-            # Replace "beta" with the actual beta branch or tag if different.
             echo "release_ref=beta" >> $GITHUB_OUTPUT
           else
-            # Replace "master" with the appropriate stable branch or tag.
-            echo "release_ref=master" >> $GITHUB_OUTPUT
+            echo "release_ref=main" >> $GITHUB_OUTPUT
+            # or 'master' or another stable branch name
           fi
 
-      - name: Checkout selected release reference
+      - name: Fetch and checkout
         shell: bash
         run: |
           git fetch origin ${{ steps.set_release.outputs.release_ref }}
           git checkout ${{ steps.set_release.outputs.release_ref }}
 
-      # 3. Set up the MSYS2 environment on Windows and install build dependencies.
-      - name: Setup MSYS2 environment
+      # 3. Setup MSYS2 environment on Windows
+      - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
         with:
-          update: true
           msystem: MINGW64
+          update: true
+          # Install all the packages needed to build Aseprite + zip
           install: >
             base-devel
             mingw-w64-x86_64-toolchain
@@ -58,23 +60,24 @@ jobs:
             mingw-w64-x86_64-boost
             zip
 
-      # 4. Build Aseprite using CMake and Ninja.
-      - name: Build Aseprite
-        shell: bash
+      # 4. Build Aseprite using CMake + Ninja
+      - name: Configure & Build
+        shell: msys2 {0}
         run: |
           mkdir build
           cd build
-          cmake -G Ninja .. -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          # Let CMake detect the MinGW compilers, specify Ninja as the generator
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
           ninja aseprite
 
-      # 5. Archive the compiled Aseprite binary into a zip file.
-      - name: Archive Aseprite binary
-        shell: bash
+      # 5. Archive the compiled Aseprite binary
+      - name: Archive Aseprite
+        shell: msys2 {0}
         run: |
           cd build
-          zip -r aseprite.zip aseprite
+          zip -r aseprite-windows.zip aseprite.exe
 
-      # 6. Create a draft release on GitHub.
+      # 6. Create a draft release
       - name: Create draft release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -85,10 +88,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 7. Upload the zip file as a release asset.
+      # 7. Upload release asset
       - name: Upload release asset
         uses: softprops/action-gh-release@v1
         with:
-          files: build/aseprite.zip
+          files: build/aseprite-windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
