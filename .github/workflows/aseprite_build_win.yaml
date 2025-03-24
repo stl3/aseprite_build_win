@@ -1,101 +1,76 @@
-name: Build Aseprite for Windows (MSYS2 + Ninja)
+name: Build Aseprite for Windows
 
 on:
-  workflow_dispatch:
-    inputs:
-      release-type:
-        description: 'Choose release type: stable or beta'
-        required: true
-        default: stable
+  workflow_dispatch:  # Runs only when manually triggered
 
 jobs:
   build:
     runs-on: windows-latest
-    env:
-      RELEASE_TYPE: ${{ github.event.inputs.release-type }}
-    steps:
-      - name: Checkout Action Repo
-        uses: actions/checkout@v3
 
-      - name: Setup MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: >
-            base-devel
-            mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-ninja
-            mingw-w64-x86_64-libpng
-            mingw-w64-x86_64-freetype
-            mingw-w64-x86_64-glfw
-            mingw-w64-x86_64-physfs
-            mingw-w64-x86_64-boost
-            zip
-      
-      - name: Clone Aseprite
-        shell: bash
+    steps:
+      - name: Checkout the workflow repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+          choco install ninja
+          choco install git
+          choco install mingw
+
+      - name: Clone Aseprite source
         run: |
           git clone --recursive https://github.com/aseprite/aseprite.git aseprite
-          cd aseprite
-          if [ "${{ env.RELEASE_TYPE }}" = "beta" ]; then
-            git checkout beta
-          else
-            git checkout main
-          fi
-
-
-      - name: Download Skia
         shell: bash
+
+      - name: Download and extract Skia
         run: |
           mkdir -p skia
           cd skia
-          RELEASE_URL=$(curl -sL -o /dev/null -w "%{url_effective}" https://github.com/aseprite/skia/releases/latest)
-          SKIA_VERSION=$(basename $RELEASE_URL)
-          SKIA_URL="https://github.com/aseprite/skia/releases/download/$SKIA_VERSION/Skia-Windows-Release-x64.zip"
+          LATEST_RELEASE=$(curl -sL https://github.com/aseprite/skia/releases/latest | grep -oP 'Skia-Windows-Release-x64.zip"(?=[^"]*")' | head -1 | sed 's/"//g')
+          SKIA_URL="https://github.com/aseprite/skia/releases/latest/download/$LATEST_RELEASE"
           echo "Downloading Skia from: $SKIA_URL"
           curl -L "$SKIA_URL" -o Skia-Windows-Release-x64.zip
           unzip Skia-Windows-Release-x64.zip
           rm Skia-Windows-Release-x64.zip
           echo "SKIA_DIR=$(pwd)" >> $GITHUB_ENV
+        shell: bash
 
-
-      - name: Check environment
-        shell: msys2 {0}
-        run: |
-          which cmake || echo "cmake not found"
-          which ninja || echo "ninja not found"
-          which gcc || echo "gcc not found"
-          which g++ || echo "g++ not found"
-
-      - name: Configure & Build
-        shell: msys2 {0}
+      - name: Configure CMake
         run: |
           mkdir build
           cd build
-          cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSKIA_DIR=${{ env.SKIA_DIR }} ../aseprite
-          ninja aseprite
+          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                -DCMAKE_IGNORE_PATH='C:/ProgramData/chocolatey/bin/;C:/Strawberry/c/bin/' \
+                -DLAF_BACKEND=skia \
+                -DSKIA_DIR=../skia \
+                -DSKIA_LIBRARY_DIR=../skia/out/Release-x64 \
+                -G Ninja ..
+        working-directory: aseprite
+        shell: bash
 
-      - name: Archive Aseprite
-        shell: msys2 {0}
+      - name: Build Aseprite
         run: |
-          cd build
+          ninja aseprite
+        working-directory: aseprite/build
+        shell: bash
+
+      - name: Package Aseprite
+        run: |
+          cd aseprite/build/bin
           zip -r aseprite-windows.zip aseprite.exe
+        shell: bash
 
-      - name: Create draft release
-        id: create_release
+      - name: Upload Release Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: aseprite-windows
+          path: aseprite/build/bin/aseprite-windows.zip
+
+      - name: Create Draft Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v$(date +'%Y%m%d%H%M')
-          name: "Aseprite ${{ env.RELEASE_TYPE }} release"
+          files: aseprite/build/bin/aseprite-windows.zip
           draft: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload release asset
-        uses: softprops/action-gh-release@v1
-        with:
-          files: build/aseprite-windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
