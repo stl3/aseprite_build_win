@@ -51,9 +51,12 @@ jobs:
         run: |
           mkdir -p skia
           cd skia
-          curl -L https://github.com/aseprite/skia/releases/latest/download/Skia-windows.zip -o Skia-windows.zip
-          unzip Skia-windows.zip
-          rm Skia-windows.zip
+          LATEST_RELEASE=$(curl -s https://github.com/aseprite/skia/releases/latest | grep -oP 'Skia-Windows-Release-x64.zip"(?=[^"]*")' | head -1 | sed 's/"//g')
+          SKIA_URL="https://github.com/aseprite/skia/releases/latest/download/$LATEST_RELEASE"
+          echo "Downloading Skia from: $SKIA_URL"
+          curl -L "$SKIA_URL" -o Skia-Windows-Release-x64.zip
+          unzip Skia-Windows-Release-x64.zip
+          rm Skia-Windows-Release-x64.zip
           echo "SKIA_DIR=$(pwd)" >> $GITHUB_ENV
 
       - name: Check environment
