@@ -27,6 +27,8 @@ def download_and_extract_skia(tag, output_dir="src/skia"):
     filename = "Skia-Windows-Release-x64.zip"
     url = f"https://github.com/{SKIA_REPO}/releases/download/{tag}/{filename}"
 
+    print(f"Skia Download URL: {url}") #debug print
+
     os.makedirs(output_dir, exist_ok=True)
 
     response = requests.get(url)
@@ -41,12 +43,24 @@ def download_and_extract_skia(tag, output_dir="src/skia"):
 
     os.remove(zip_path)
 
-def clone_aseprite(tag, output_dir="src/aseprite"):
-    """Clones the Aseprite repository at the specified tag."""
+def clone_aseprite(tag, output_dir="src/aseprite", release_type="stable"):
+    """Clones or downloads the Aseprite repository at the specified tag."""
     os.makedirs(output_dir, exist_ok=True)
-    clone_url = f"https://github.com/{ASEPRITE_REPO}.git"
-    os.system(f"git clone -b {tag} --depth 1 {clone_url} {output_dir}")
-    os.system(f"cd {output_dir} && git submodule update --init --recursive")
+    if release_type == "stable":
+        clone_url = f"https://github.com/{ASEPRITE_REPO}.git"
+        os.system(f"git clone -b {tag} --depth 1 {clone_url} {output_dir}")
+        os.system(f"cd {output_dir} && git submodule update --init --recursive")
+    else: #beta
+        url = f"https://github.com/{ASEPRITE_REPO}/releases/download/{tag}/Aseprite-{tag}-Source.zip"
+        print(f"Aseprite Download URL: {url}") #debug print
+        response = requests.get(url)
+        response.raise_for_status()
+        zip_path = os.path.join("src","Aseprite.zip")
+        with open(zip_path, "wb") as f:
+            f.write(response.content)
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(output_dir)
+        os.remove(zip_path)
 
 def get_latest_skia_tag(release_type="stable"):
     """Gets the latest Skia tag based on release type."""
@@ -71,19 +85,19 @@ if __name__ == "__main__":
     release_type = sys.argv[1] if len(sys.argv) > 1 else "stable"
 
     aseprite_tag = get_latest_aseprite_release(release_type)
-    clone_aseprite(aseprite_tag)
+    clone_aseprite(aseprite_tag, release_type=release_type)
 
     skia_tag = get_latest_skia_tag(release_type)
 
     if skia_tag:
-        print(f"Aseprite {release_type} tag: {aseprite_tag}") # added print
-        print(f"Skia {release_type} tag: {skia_tag}") # added print
+        print(f"Aseprite {release_type} tag: {aseprite_tag}")
+        print(f"Skia {release_type} tag: {skia_tag}")
         download_and_extract_skia(skia_tag)
     else:
         print("Warning: No matching Skia release found. Using latest stable Skia.")
         skia_tag = get_latest_skia_tag()
-        print(f"Aseprite {release_type} tag: {aseprite_tag}") # added print
-        print(f"Skia stable tag: {skia_tag}") # added print
+        print(f"Aseprite {release_type} tag: {aseprite_tag}")
+        print(f"Skia stable tag: {skia_tag}")
         download_and_extract_skia(skia_tag)
 
     with open("version.txt", "w") as f:
