@@ -65,6 +65,7 @@ jobs:
           cd aseprite
           mkdir build
           cd build
+          dir %SKIA_DIR%/out/Release-x64/ # add this line to list directory contents.
           cmake "../" -G Ninja ^
             -DCMAKE_BUILD_TYPE=MinSizeRel ^
             -DLAF_BACKEND=skia ^
