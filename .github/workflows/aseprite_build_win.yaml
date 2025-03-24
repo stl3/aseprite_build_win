@@ -90,7 +90,7 @@ jobs:
             -DSKIA_LIBRARY_DIR=${{ env.SKIA_DIR }}/out/Release-x64 \
             -DUSE_WINSOCK=1 \
             -D_WIN32_WINNT=0x0A00 \
-            ../aseprite
+            ../ # Corrected to point to the aseprite source directory
           ninja aseprite
 
       - name: Archive Aseprite
