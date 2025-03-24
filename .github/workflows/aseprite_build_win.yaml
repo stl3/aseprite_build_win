@@ -14,15 +14,9 @@ jobs:
     env:
       RELEASE_TYPE: ${{ github.event.inputs.release-type }}
     steps:
-      # 1. Check out your code
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          submodules: false  # We'll update submodules manually
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2. Determine branch or tag
       - name: Determine branch or tag
         id: set_release
         shell: bash
@@ -39,13 +33,6 @@ jobs:
           git fetch origin ${{ steps.set_release.outputs.release_ref }}
           git checkout ${{ steps.set_release.outputs.release_ref }}
 
-      # 3. Update submodules
-      - name: Update submodules
-        shell: bash
-        run: |
-          git submodule update --init --recursive
-
-      # 4. Setup MSYS2 environment
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
         with:
@@ -63,46 +50,28 @@ jobs:
             mingw-w64-x86_64-boost
             zip
 
-      # 5. Auto-detect path containing CMakeLists.txt
-      - name: Detect CMakeLists directory
-        id: detect_cmakelists
-        shell: bash
+      - name: Check environment
+        shell: msys2 {0}
         run: |
-          # We'll search for the first directory that contains a file named CMakeLists.txt
-          # 'find' will print all matching paths, so we take the first match.
-          # If your project has multiple CMakeLists, you may need to refine the logic.
-          DETECTED_PATH=$(find . -name CMakeLists.txt | head -n 1)
+          which cmake || echo "cmake not found"
+          which ninja || echo "ninja not found"
+          which gcc || echo "gcc not found"
+          which g++ || echo "g++ not found"
 
-          if [ -z "$DETECTED_PATH" ]; then
-            echo "ERROR: No CMakeLists.txt found in the repository!"
-            exit 1
-          fi
-
-          # The file might be something like ./aseprite/CMakeLists.txt
-          # So we want the directory part only:
-          DETECTED_DIR=$(dirname "$DETECTED_PATH")
-
-          # Output that directory path for future steps
-          echo "cmake_source_dir=$DETECTED_DIR" >> $GITHUB_OUTPUT
-
-      # 6. Build Aseprite using the detected directory
       - name: Configure & Build
         shell: msys2 {0}
         run: |
           mkdir build
           cd build
-          # Use the detected directory in place of '..'
-          cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ${{ steps.detect_cmakelists.outputs.cmake_source_dir }}
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
           ninja aseprite
 
-      # 7. Archive the compiled Aseprite binary
       - name: Archive Aseprite
         shell: msys2 {0}
         run: |
           cd build
           zip -r aseprite-windows.zip aseprite.exe
 
-      # 8. Create draft release
       - name: Create draft release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -113,7 +82,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 9. Upload release asset
       - name: Upload release asset
         uses: softprops/action-gh-release@v1
         with:
