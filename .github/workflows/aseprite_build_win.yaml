@@ -30,6 +30,9 @@ jobs:
           choco install ninja
           choco install git
           choco install mingw
+          echo "C:/ProgramData/chocolatey/bin" >> $GITHUB_PATH
+        shell: bash
+
 
       - name: Clone Aseprite Source (Stable/Beta)
         run: |
@@ -54,12 +57,14 @@ jobs:
           rm Skia-Windows-Release-x64.zip
           echo "SKIA_DIR=$(pwd)" >> $GITHUB_ENV
 
-
       - name: Configure CMake
         run: |
           mkdir build
           cd build
           cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                -DCMAKE_MAKE_PROGRAM=C:/ProgramData/chocolatey/bin/ninja.exe \
+                -DCMAKE_C_COMPILER=C:/msys64/mingw64/bin/gcc.exe \
+                -DCMAKE_CXX_COMPILER=C:/msys64/mingw64/bin/g++.exe \
                 -DCMAKE_IGNORE_PATH='C:/ProgramData/chocolatey/bin/;C:/Strawberry/c/bin/' \
                 -DLAF_BACKEND=skia \
                 -DSKIA_DIR=../skia \
@@ -67,6 +72,7 @@ jobs:
                 -G Ninja ..
         working-directory: aseprite
         shell: bash
+
 
       - name: Build Aseprite
         run: |
