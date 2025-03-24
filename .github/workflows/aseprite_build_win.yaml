@@ -45,22 +45,7 @@ jobs:
           rm Skia-Windows-Release-x64.zip
           echo "SKIA_DIR=$(pwd)" >> $GITHUB_ENV
       
-      - name: Download Freetype and Harfbuzz
-        shell: bash
-        run: |
-          mkdir -p deps
-          cd deps
-          curl -L "https://download.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.gz" -o freetype.tar.gz
-          7z x freetype.tar.gz -oFreetype
-          cd Freetype #change working directory.
-          7z x freetype-2.13.2.tar.gz -oFreetype #remove the Freetype/ from the path.
-          cd .. #change working directory back.
-          rm freetype.tar.gz Freetype/freetype-2.13.2.tar.gz
-          curl -L "https://github.com/harfbuzz/harfbuzz/releases/download/8.3.0/harfbuzz-8.3.0-win64.zip" -o harfbuzz.zip
-          unzip harfbuzz.zip
-          rm harfbuzz.zip
-          echo "FREETYPE_DIR=$(pwd)/Freetype/freetype-2.13.2" >> $GITHUB_ENV
-          echo "HARFBUZZ_DIR=$(pwd)/harfbuzz-8.3.0-win64" >> $GITHUB_ENV
+
 
       - name: Configure CMake
         shell: cmd
@@ -80,7 +65,7 @@ jobs:
           cd aseprite
           mkdir build
           cd build
-          set SKIA_LIB_NAME=$(dir %SKIA_DIR%/out/Release-x64/*.lib /b)
+          for /f "delims=" %%i in ('dir %SKIA_DIR%/out/Release-x64/*.lib /b') do set SKIA_LIB_NAME=%%i
           set SKIA_LIB_PATH=%SKIA_DIR%/out/Release-x64/%SKIA_LIB_NAME%
           cmake -G Ninja ^
             -DCMAKE_BUILD_TYPE=RelWithDebInfo ^
@@ -88,10 +73,6 @@ jobs:
             -DSKIA_DIR=%SKIA_DIR% ^
             -DSKIA_LIBRARY_DIR=%SKIA_DIR%/out/Release-x64 ^
             -DSKIA_LIBRARY=%SKIA_LIB_PATH% ^
-            -DFREETYPE_INCLUDE_DIRS="%FREETYPE_DIR%/include;%FREETYPE_DIR%/include/freetype2" ^
-            -DFREETYPE_LIBRARIES="%FREETYPE_DIR%/objs/x64/freetype.lib" ^
-            -DHARFBUZZ_INCLUDE_DIRS="%HARFBUZZ_DIR%/include" ^
-            -DHARFBUZZ_LIBRARIES="%HARFBUZZ_DIR%/lib/harfbuzz.lib" ^
             -DUSE_WINSOCK=1 ^
             -D_WIN32_WINNT=0x0A00 ^
             ../
