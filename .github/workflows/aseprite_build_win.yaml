@@ -6,7 +6,7 @@ on:
       release-type:
         description: 'Choose release type: stable or beta'
         required: true
-        default: stable
+        default: beta
 
 jobs:
   build:
