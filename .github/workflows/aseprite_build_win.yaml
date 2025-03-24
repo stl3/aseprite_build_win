@@ -79,7 +79,7 @@ jobs:
         shell: bash
 
       - name: Upload Release Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: aseprite-${{ env.RELEASE_TYPE }}-windows
           path: aseprite/build/bin/aseprite-${{ env.RELEASE_TYPE }}-windows.zip
