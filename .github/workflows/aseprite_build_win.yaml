@@ -58,7 +58,7 @@ jobs:
             -DUSE_WINSOCK=1 ^
             -D_WIN32_WINNT=0x0A00 ^
             ../
-
+            
       - name: Configure & Build
         shell: cmd
         run: |
@@ -75,6 +75,8 @@ jobs:
             -DSKIA_LIBRARY=%SKIA_LIB_PATH% ^
             -DUSE_WINSOCK=1 ^
             -D_WIN32_WINNT=0x0A00 ^
+            -DCMAKE_CXX_FLAGS="-lws2_32" ^
+            -DCMAKE_C_FLAGS="-lws2_32" ^
             ../
           ninja aseprite
 
