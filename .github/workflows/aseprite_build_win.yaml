@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup Visual Studio Build Tools
-        uses: ilammy/msvc-dev-cmd@v1 #This action sets up the Visual studio command prompt.
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Clone Aseprite
         shell: bash
@@ -46,29 +46,29 @@ jobs:
           echo "SKIA_DIR=$(pwd)" >> $GITHUB_ENV
 
       - name: Configure CMake
-        shell: cmd #use the windows command prompt.
+        shell: cmd
         run: |
           cd aseprite
           mkdir build_configure
           cd build_configure
-          cmake -G Ninja ../ \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-            -DUSE_WINSOCK=1 \
+          cmake -G Ninja ^
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo ^
+            -DUSE_WINSOCK=1 ^
             -D_WIN32_WINNT=0x0A00
 
       - name: Configure & Build
-        shell: cmd #use the windows command prompt.
+        shell: cmd
         run: |
           cd aseprite
           mkdir build
           cd build
-          cmake -G Ninja \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-            -DLAF_BACKEND=skia \
-            -DSKIA_DIR=%SKIA_DIR% \
-            -DSKIA_LIBRARY_DIR=%SKIA_DIR%/out/Release-x64 \
-            -DUSE_WINSOCK=1 \
-            -D_WIN32_WINNT=0x0A00 \
+          cmake -G Ninja ^
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo ^
+            -DLAF_BACKEND=skia ^
+            -DSKIA_DIR=%SKIA_DIR% ^
+            -DSKIA_LIBRARY_DIR=%SKIA_DIR%/out/Release-x64 ^
+            -DUSE_WINSOCK=1 ^
+            -D_WIN32_WINNT=0x0A00 ^
             ../
           ninja aseprite
 
