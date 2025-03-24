@@ -76,10 +76,14 @@ if __name__ == "__main__":
     skia_tag = get_latest_skia_tag(release_type)
 
     if skia_tag:
+        print(f"Aseprite {release_type} tag: {aseprite_tag}") # added print
+        print(f"Skia {release_type} tag: {skia_tag}") # added print
         download_and_extract_skia(skia_tag)
     else:
         print("Warning: No matching Skia release found. Using latest stable Skia.")
         skia_tag = get_latest_skia_tag()
+        print(f"Aseprite {release_type} tag: {aseprite_tag}") # added print
+        print(f"Skia stable tag: {skia_tag}") # added print
         download_and_extract_skia(skia_tag)
 
     with open("version.txt", "w") as f:
