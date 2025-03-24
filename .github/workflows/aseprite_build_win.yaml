@@ -18,9 +18,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          # If building Aseprite from the official repo, specify:
-          # repository: 'aseprite/aseprite'
-          # Otherwise, omit or adjust as needed.
+          # IMPORTANT: fetch the entire history so you can checkout other branches/tags
+          fetch-depth: 0
+          # Submodules will be synced after we fetch the correct branch/tag
+          submodules: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
       # 2. Determine the branch or tag to fetch (beta vs stable)
@@ -41,7 +42,13 @@ jobs:
           git fetch origin ${{ steps.set_release.outputs.release_ref }}
           git checkout ${{ steps.set_release.outputs.release_ref }}
 
-      # 3. Setup MSYS2 environment on Windows
+      # 3. Make sure submodules are updated after checking out the desired ref
+      - name: Update submodules
+        shell: bash
+        run: |
+          git submodule update --init --recursive
+
+      # 4. Setup MSYS2 environment on Windows
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
         with:
@@ -60,7 +67,7 @@ jobs:
             mingw-w64-x86_64-boost
             zip
 
-      # 4. Build Aseprite using CMake + Ninja
+      # 5. Build Aseprite using CMake + Ninja
       - name: Configure & Build
         shell: msys2 {0}
         run: |
@@ -70,14 +77,14 @@ jobs:
           cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
           ninja aseprite
 
-      # 5. Archive the compiled Aseprite binary
+      # 6. Archive the compiled Aseprite binary
       - name: Archive Aseprite
         shell: msys2 {0}
         run: |
           cd build
           zip -r aseprite-windows.zip aseprite.exe
 
-      # 6. Create a draft release
+      # 7. Create a draft release
       - name: Create draft release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -88,7 +95,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 7. Upload release asset
+      # 8. Upload release asset
       - name: Upload release asset
         uses: softprops/action-gh-release@v1
         with:
