@@ -71,12 +71,13 @@ jobs:
       - name: Configure CMake
         shell: msys2 {0}
         run: |
-          cd aseprite
-          cmake -G Ninja . \
+          mkdir aseprite/build_configure
+          cd aseprite/build_configure
+          cmake -G Ninja ../ \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DUSE_WINSOCK=1 \
             -D_WIN32_WINNT=0x0601
-      
+
       - name: Configure & Build
         shell: msys2 {0}
         run: |
