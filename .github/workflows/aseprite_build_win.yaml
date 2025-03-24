@@ -77,7 +77,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DUSE_WINSOCK=1 \
             -D_WIN32_WINNT=0x0601
-
+      
       - name: Configure & Build
         shell: msys2 {0}
         run: |
@@ -88,6 +88,8 @@ jobs:
             -DLAF_BACKEND=skia \
             -DSKIA_DIR=${{ env.SKIA_DIR }} \
             -DSKIA_LIBRARY_DIR=${{ env.SKIA_DIR }}/out/Release-x64 \
+            -DUSE_WINSOCK=1 \
+            -D_WIN32_WINNT=0x0A00 # or 0x0601 if building for windows 7
             ../
           ninja aseprite
 
