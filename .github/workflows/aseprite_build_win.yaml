@@ -33,9 +33,9 @@ jobs:
             mingw-w64-x86_64-physfs
             mingw-w64-x86_64-boost
             zip
-
+      
       - name: Clone Aseprite
-        shell: msys2 {0}
+        shell: bash
         run: |
           git clone --recursive https://github.com/aseprite/aseprite.git aseprite
           cd aseprite
@@ -44,6 +44,7 @@ jobs:
           else
             git checkout main
           fi
+
 
       - name: Download Skia
         shell: bash
