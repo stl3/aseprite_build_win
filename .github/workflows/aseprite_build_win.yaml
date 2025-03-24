@@ -1,7 +1,16 @@
 name: Build Aseprite for Windows
 
 on:
-  workflow_dispatch:  # Runs only when manually triggered
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Choose Aseprite release type (stable or beta)"
+        required: true
+        default: "stable"
+        type: choice
+        options:
+          - stable
+          - beta
 
 jobs:
   build:
@@ -12,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set Release Type
-        run: echo "RELEASE_TYPE=${{ github.event.inputs.release_type || 'stable' }}" >> $GITHUB_ENV
+        run: echo "RELEASE_TYPE=${{ github.event.inputs.release_type }}" >> $GITHUB_ENV
         shell: bash
 
       - name: Install Dependencies
