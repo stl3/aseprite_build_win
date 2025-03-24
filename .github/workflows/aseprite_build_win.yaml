@@ -11,6 +11,10 @@ jobs:
       - name: Checkout the workflow repository
         uses: actions/checkout@v4
 
+      - name: Set Release Type
+        run: echo "RELEASE_TYPE=${{ github.event.inputs.release_type || 'stable' }}" >> $GITHUB_ENV
+        shell: bash
+
       - name: Install Dependencies
         run: |
           choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
@@ -18,12 +22,16 @@ jobs:
           choco install git
           choco install mingw
 
-      - name: Clone Aseprite source
+      - name: Clone Aseprite Source (Stable/Beta)
         run: |
-          git clone --recursive https://github.com/aseprite/aseprite.git aseprite
+          if [[ "$RELEASE_TYPE" == "stable" ]]; then
+            git clone --recursive --branch main https://github.com/aseprite/aseprite.git aseprite
+          else
+            git clone --recursive --branch beta https://github.com/aseprite/aseprite.git aseprite
+          fi
         shell: bash
 
-      - name: Download and extract Skia
+      - name: Download and Extract Skia
         run: |
           mkdir -p skia
           cd skia
@@ -58,19 +66,19 @@ jobs:
       - name: Package Aseprite
         run: |
           cd aseprite/build/bin
-          zip -r aseprite-windows.zip aseprite.exe
+          zip -r aseprite-${{ env.RELEASE_TYPE }}-windows.zip aseprite.exe
         shell: bash
 
       - name: Upload Release Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: aseprite-windows
-          path: aseprite/build/bin/aseprite-windows.zip
+          name: aseprite-${{ env.RELEASE_TYPE }}-windows
+          path: aseprite/build/bin/aseprite-${{ env.RELEASE_TYPE }}-windows.zip
 
       - name: Create Draft Release
         uses: softprops/action-gh-release@v1
         with:
-          files: aseprite/build/bin/aseprite-windows.zip
+          files: aseprite/build/bin/aseprite-${{ env.RELEASE_TYPE }}-windows.zip
           draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
