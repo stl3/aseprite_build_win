@@ -27,7 +27,7 @@ jobs:
         run: |
           choco install ninja -y
           python -m pip install --upgrade pip
-          pip install requests
+          pip install -r requirements.txt
 
       - name: Download Aseprite and Skia
         run: python download.py ${{ github.event.inputs.release_type }}
