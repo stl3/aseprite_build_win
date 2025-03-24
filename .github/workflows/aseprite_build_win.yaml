@@ -87,7 +87,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DLAF_BACKEND=skia \
             -DSKIA_DIR=${{ env.SKIA_DIR }} \
-            -DSKIA_LIBRARY_DIR=${{ env.SKIA_DIR }} \
+            -DSKIA_LIBRARY_DIR=${{ env.SKIA_DIR }}/out/Release-x64 \
             ../
           ninja aseprite
 
