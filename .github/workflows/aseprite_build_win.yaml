@@ -69,7 +69,7 @@ jobs:
           which g++ || echo "g++ not found"
 
       - name: Configure CMake
-        shell: bash
+        shell: msys2 {0}
         run: |
           cd aseprite
           cmake -G Ninja . \
