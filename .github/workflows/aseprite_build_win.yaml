@@ -14,24 +14,8 @@ jobs:
     env:
       RELEASE_TYPE: ${{ github.event.inputs.release-type }}
     steps:
-      - name: Checkout
+      - name: Checkout Action Repo
         uses: actions/checkout@v3
-
-      - name: Determine branch or tag
-        id: set_release
-        shell: bash
-        run: |
-          if [ "${{ env.RELEASE_TYPE }}" = "beta" ]; then
-            echo "release_ref=beta" >> $GITHUB_OUTPUT
-          else
-            echo "release_ref=main" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Fetch and checkout
-        shell: bash
-        run: |
-          git fetch origin ${{ steps.set_release.outputs.release_ref }}
-          git checkout ${{ steps.set_release.outputs.release_ref }}
 
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
@@ -50,6 +34,27 @@ jobs:
             mingw-w64-x86_64-boost
             zip
 
+      - name: Clone Aseprite
+        shell: msys2 {0}
+        run: |
+          git clone --recursive https://github.com/aseprite/aseprite.git aseprite
+          cd aseprite
+          if [ "${{ env.RELEASE_TYPE }}" = "beta" ]; then
+            git checkout beta
+          else
+            git checkout main
+          fi
+
+      - name: Download Skia
+        shell: bash
+        run: |
+          mkdir -p skia
+          cd skia
+          curl -L https://github.com/aseprite/skia/releases/latest/download/Skia-windows.zip -o Skia-windows.zip
+          unzip Skia-windows.zip
+          rm Skia-windows.zip
+          echo "SKIA_DIR=$(pwd)" >> $GITHUB_ENV
+
       - name: Check environment
         shell: msys2 {0}
         run: |
@@ -63,7 +68,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSKIA_DIR=${{ env.SKIA_DIR }} ../aseprite
           ninja aseprite
 
       - name: Archive Aseprite
