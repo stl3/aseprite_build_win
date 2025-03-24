@@ -3,6 +3,7 @@ import os
 import zipfile
 import sys
 import re
+from bs4 import BeautifulSoup  # import beautiful soup.
 
 ASEPRITE_REPO = "aseprite/aseprite"
 SKIA_REPO = "aseprite/skia"
@@ -27,7 +28,7 @@ def download_and_extract_skia(tag, output_dir="src/skia"):
     filename = "Skia-Windows-Release-x64.zip"
     url = f"https://github.com/{SKIA_REPO}/releases/download/{tag}/{filename}"
 
-    print(f"Skia Download URL: {url}") #debug print
+    print(f"Skia Download URL: {url}")  # debug print
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -50,12 +51,12 @@ def clone_aseprite(tag, output_dir="src/aseprite", release_type="stable"):
         clone_url = f"https://github.com/{ASEPRITE_REPO}.git"
         os.system(f"git clone -b {tag} --depth 1 {clone_url} {output_dir}")
         os.system(f"cd {output_dir} && git submodule update --init --recursive")
-    else: #beta
+    else:  # beta
         url = f"https://github.com/{ASEPRITE_REPO}/releases/download/{tag}/Aseprite-{tag}-Source.zip"
-        print(f"Aseprite Download URL: {url}") #debug print
+        print(f"Aseprite Download URL: {url}")  # debug print
         response = requests.get(url)
         response.raise_for_status()
-        zip_path = os.path.join("src","Aseprite.zip")
+        zip_path = os.path.join("src", "Aseprite.zip")
         with open(zip_path, "wb") as f:
             f.write(response.content)
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
@@ -72,14 +73,17 @@ def get_latest_skia_tag(release_type="stable"):
         tag = redirected_url.split("/tag/")[1]
         return tag
     else:  # beta
-        url = "https://api.github.com/repos/aseprite/skia/releases"
+        url = "https://github.com/aseprite/skia/releases"
         response = requests.get(url)
         response.raise_for_status()
-        releases = response.json()
-        for release in releases:
-            if "beta" in release["tag_name"].lower():
-                return release["tag_name"]
-        return None
+        soup = BeautifulSoup(response.content, "html.parser")  # Use beautiful soup to parse the html.
+        release_links = soup.find_all("a", href=True)  # find all a tags with href.
+        for link in release_links:
+            if "beta" in link.text.lower():  # find the link with beta in the text.
+                match = re.search(r'/tag/([a-zA-Z0-9-]+)', link["href"])  # extract the tag from the href.
+                if match:
+                    return match.group(1)
+        return None  # Return None if no beta release is found
 
 if __name__ == "__main__":
     release_type = sys.argv[1] if len(sys.argv) > 1 else "stable"
