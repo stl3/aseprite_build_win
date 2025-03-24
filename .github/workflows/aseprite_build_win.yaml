@@ -54,7 +54,8 @@ jobs:
           cmake -G Ninja ^
             -DCMAKE_BUILD_TYPE=RelWithDebInfo ^
             -DUSE_WINSOCK=1 ^
-            -D_WIN32_WINNT=0x0A00
+            -D_WIN32_WINNT=0x0A00 ^
+            ../aseprite
 
       - name: Configure & Build
         shell: cmd
@@ -70,6 +71,7 @@ jobs:
             -DUSE_WINSOCK=1 ^
             -D_WIN32_WINNT=0x0A00 ^
             ../
+
           ninja aseprite
 
       - name: Archive Aseprite
