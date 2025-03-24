@@ -1,8 +1,16 @@
 name: Build Aseprite (Windows x64)
 
 on:
-  push:
-    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Select release type (stable or beta)'
+        required: true
+        default: 'stable'
+        type: choice
+        options:
+          - stable
+          - beta
 
 permissions:
   contents: write
@@ -22,7 +30,7 @@ jobs:
           pip install requests
 
       - name: Download Aseprite and Skia
-        run: python download.py
+        run: python download.py ${{ github.event.inputs.release_type }}
 
       - name: Setup MSVC Environment
         uses: TheMrMilchmann/setup-msvc-dev@v3
@@ -48,10 +56,11 @@ jobs:
           cd build/bin
           7z a ../../Aseprite-Windows-x64-${{ steps.get_version.outputs.version }}.zip *
 
-      - name: Create GitHub Release
+      - name: Create GitHub Draft Release
         uses: softprops/action-gh-release@v2
         with:
           name: Aseprite-Windows-x64-${{ steps.get_version.outputs.version }}
           tag_name: ${{ steps.get_version.outputs.version }}
           files: |
             Aseprite-Windows-x64-${{ steps.get_version.outputs.version }}.zip
+          draft: true # This line makes it a draft release
