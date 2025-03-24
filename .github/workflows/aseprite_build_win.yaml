@@ -77,10 +77,11 @@ jobs:
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DUSE_WINSOCK=1 \
             -D_WIN32_WINNT=0x0A00
-
+      
       - name: Configure & Build
         shell: msys2 {0}
         run: |
+          rm -rf aseprite/build # clean build
           mkdir aseprite/build
           cd aseprite/build
           cmake -G Ninja \
@@ -90,7 +91,9 @@ jobs:
             -DSKIA_LIBRARY_DIR=${{ env.SKIA_DIR }}/out/Release-x64 \
             -DUSE_WINSOCK=1 \
             -D_WIN32_WINNT=0x0A00 \
-            ../ # Corrected to point to the aseprite source directory
+            -DCMAKE_CXX_FLAGS="-lws2_32" \
+            -DCMAKE_C_FLAGS="-lws2_32" \
+            ../
           ninja aseprite
 
       - name: Archive Aseprite
