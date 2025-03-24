@@ -1,3 +1,13 @@
+name: Build Aseprite for Windows (Visual Studio + Ninja)
+
+on:
+  workflow_dispatch:
+    inputs:
+      release-type:
+        description: 'Choose release type: stable or beta'
+        required: true
+        default: stable
+
 jobs:
   build:
     runs-on: windows-latest
