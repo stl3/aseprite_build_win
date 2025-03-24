@@ -65,20 +65,16 @@ jobs:
           cd aseprite
           mkdir build
           cd build
-          for /f "delims=" %%i in ('dir %SKIA_DIR%/out/Release-x64/*.lib /b') do set SKIA_LIB_NAME=%%i
-          set SKIA_LIB_PATH=%SKIA_DIR%/out/Release-x64/%SKIA_LIB_NAME%
-          cmake -G Ninja ^
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo ^
+          cmake "../" -G Ninja ^
+            -DCMAKE_BUILD_TYPE=MinSizeRel ^
             -DLAF_BACKEND=skia ^
             -DSKIA_DIR=%SKIA_DIR% ^
             -DSKIA_LIBRARY_DIR=%SKIA_DIR%/out/Release-x64 ^
-            -DSKIA_LIBRARY=%SKIA_LIB_PATH% ^
+            -DSKIA_LIBRARY=%SKIA_DIR%/out/Release-x64/skia.lib ^
             -DUSE_WINSOCK=1 ^
-            -D_WIN32_WINNT=0x0A00 ^
-            -DCMAKE_CXX_FLAGS="-lws2_32" ^
-            -DCMAKE_C_FLAGS="-lws2_32" ^
-            ../
+            -D_WIN32_WINNT=0x0A00
           ninja aseprite
+          copy "C:/Windows/System32/libcrypto-1_1-x64.dll" ./bin
 
       - name: Archive Aseprite
         shell: cmd
