@@ -81,6 +81,7 @@ jobs:
       - name: Configure & Build
         shell: msys2 {0}
         run: |
+          mkdir aseprite/build
           cd aseprite/build
           cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
