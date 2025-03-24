@@ -28,10 +28,16 @@ jobs:
         run: |
           choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
           choco install ninja
-          choco install git
+          choco install git --force --params "/GitAndUnixToolsOnPath"
           choco install mingw
-          echo "C:/ProgramData/chocolatey/bin" >> $GITHUB_PATH
+          echo "C:/Program Files/Git/bin" >> $GITHUB_PATH
+          echo "C:/Program Files/Git/usr/bin" >> $GITHUB_PATH
         shell: bash
+
+      - name: Retry Git Install (If Needed)
+        run: |
+          choco install git -y || choco install git -y
+
 
 
       - name: Clone Aseprite Source (Stable/Beta)
