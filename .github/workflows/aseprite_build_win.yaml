@@ -46,7 +46,6 @@ jobs:
             git checkout main
           fi
 
-
       - name: Download Skia
         shell: bash
         run: |
@@ -61,8 +60,6 @@ jobs:
           rm Skia-Windows-Release-x64.zip
           echo "SKIA_DIR=$(pwd)" >> $GITHUB_ENV
 
-
-
       - name: Check environment
         shell: msys2 {0}
         run: |
@@ -74,24 +71,23 @@ jobs:
       - name: Configure CMake
         shell: bash
         run: |
-          cmake -G Ninja .. \
+          cd aseprite
+          cmake -G Ninja . \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DUSE_WINSOCK=1 \
-            -D_WIN32_WINNT=0x0601  # Windows 7 or later
-          
+            -D_WIN32_WINNT=0x0601
 
       - name: Configure & Build
         shell: msys2 {0}
         run: |
-          mkdir build
-          cd build
-          cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSKIA_DIR=${{ env.SKIA_DIR }} ../aseprite
+          cd aseprite/build
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSKIA_DIR=${{ env.SKIA_DIR }} ../
           ninja aseprite
 
       - name: Archive Aseprite
         shell: msys2 {0}
         run: |
-          cd build
+          cd aseprite/build
           zip -r aseprite-windows.zip aseprite.exe
 
       - name: Create draft release
@@ -107,6 +103,6 @@ jobs:
       - name: Upload release asset
         uses: softprops/action-gh-release@v1
         with:
-          files: build/aseprite-windows.zip
+          files: aseprite/build/aseprite-windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
