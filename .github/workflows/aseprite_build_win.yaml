@@ -31,10 +31,9 @@ jobs:
 
       - name: Download Aseprite and Skia
         run: python download.py ${{ github.event.inputs.release_type }}
-        working-directory: ${{ github.workspace }}
-      
-     - name: List directories for debug
-        run: dir src
+          dir src
+        working-directory: ${{ github.workspace }}     
+        
 
       - name: Setup MSVC Environment
         uses: TheMrMilchmann/setup-msvc-dev@v3
