@@ -37,18 +37,15 @@ jobs:
         with:
           arch: x64
 
-      - name: Fix Relative Include Paths
-        run: |
-          $cmakeFiles = Get-ChildItem -Recurse -Filter CMakeLists.txt
-          foreach ($file in $cmakeFiles) {
-            (Get-Content $file.PSPath) -replace '\.\./src/skia/third_party/externals/libjpeg-turbo', "${{ github.workspace }}/src/skia/third_party/externals/libjpeg-turbo" | Set-Content $file.PSPath
-          }         
-
       - name: Configure and Build
+        shell: pwsh
         run: |
+          $srcDir = Resolve-Path ../src/aseprite
+          $skiaDir = Resolve-Path ../src/skia
+          $skiaLibDir = Resolve-Path ../src/skia/out/Release-x64
           mkdir build
           cd build
-          cmake "../src/aseprite" -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel -DLAF_BACKEND=skia -DSKIA_DIR="../src/skia" -DSKIA_LIBRARY_DIR="../src/skia/out/Release-x64" -DSKIA_LIBRARY="../src/skia/out/Release-x64/skia.lib"
+          cmake "$srcDir" -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel -DLAF_BACKEND=skia -DSKIA_DIR="$skiaDir" -DSKIA_LIBRARY_DIR="$skiaLibDir" -DSKIA_LIBRARY="$skiaLibDir/skia.lib"
           ninja aseprite
           copy "C:/Windows/System32/libcrypto-1_1-x64.dll" ./bin
 
