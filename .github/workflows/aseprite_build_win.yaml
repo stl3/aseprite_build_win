@@ -37,6 +37,13 @@ jobs:
         with:
           arch: x64
 
+      - name: Fix Relative Include Paths
+        run: |
+          $cmakeFiles = Get-ChildItem -Recurse -Filter CMakeLists.txt
+          foreach ($file in $cmakeFiles) {
+            (Get-Content $file.PSPath) -replace '\.\./src/skia/third_party/externals/libjpeg-turbo', "${{ github.workspace }}/src/skia/third_party/externals/libjpeg-turbo" | Set-Content $file.PSPath
+          }         
+
       - name: Configure and Build
         run: |
           mkdir build
