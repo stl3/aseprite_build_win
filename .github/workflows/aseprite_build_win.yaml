@@ -43,9 +43,9 @@ jobs:
       - name: Configure and Build
         shell: pwsh
         run: |
-          $srcDir = Resolve-Path ../src/aseprite
-          $skiaDir = Resolve-Path ../src/skia
-          $skiaLibDir = Resolve-Path ../src/skia/out/Release-x64
+          $srcDir = Resolve-Path src/aseprite
+          $skiaDir = Resolve-Path src/skia
+          $skiaLibDir = Resolve-Path src/skia/out/Release-x64
           mkdir build
           cd build
           cmake "$srcDir" -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel -DLAF_BACKEND=skia -DSKIA_DIR="$skiaDir" -DSKIA_LIBRARY_DIR="$skiaLibDir" -DSKIA_LIBRARY="$skiaLibDir/skia.lib"
